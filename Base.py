@@ -1,3 +1,4 @@
+import pandas as pd
 
 
 """planilha= client.open(title="Teste", 
