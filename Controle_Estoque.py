@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from datetime import datetime
 
-# Conexão com o banco de dados
+# Conectar ao banco
 def conectar_banco():
     conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};'
@@ -13,7 +13,7 @@ def conectar_banco():
     )
     return conn
 
-# Consulta produto pelo código de barras
+# Consultar produto pelo código de barras
 def consultar_produto(codigo_barras):
     conn = conectar_banco()
     cursor = conn.cursor()
@@ -23,7 +23,7 @@ def consultar_produto(codigo_barras):
     conn.close()
     return produto
 
-# Registrar entrada ou saída de produto
+# Registrar movimentação de estoque
 def registrar_movimentacao(produto_id, tipo, quantidade, usuario):
     conn = conectar_banco()
     cursor = conn.cursor()
@@ -42,18 +42,16 @@ def registrar_movimentacao(produto_id, tipo, quantidade, usuario):
     cursor.close()
     conn.close()
 
-# Atualiza a tabela de produtos no GUI
+# Listar todos os produtos
 def listar_produtos():
     for row in tree.get_children():
         tree.delete(row)
     conn = conectar_banco()
     cursor = conn.cursor()
     cursor.execute("SELECT codigo_barras, nome, quantidade FROM produtos")
-    for produto in cursor.fetchall():
-        codigo, nome, quantidade = produto
-        codigo = codigo.strip()
+    for codigo, nome, quantidade in cursor.fetchall():
         nome = nome.strip()
-
+        codigo = codigo.strip()
         if quantidade <= 10:
             quantidade_str = f"⚠️ {quantidade}"
             tree.insert("", tk.END, values=(codigo, nome, quantidade_str), tags=('alerta',))
@@ -64,19 +62,22 @@ def listar_produtos():
 
 # Buscar produto na interface
 def buscar_produto_interface(event=None):
-    codigo_barras = input_codigo_barras.get()
+    codigo_barras = input_codigo_barras.get().strip()
     produto = consultar_produto(codigo_barras)
     input_nome_produto.config(state='normal')
     input_nome_produto.delete(0, tk.END)
+    
     if produto:
-        input_nome_produto.insert(0, produto[1])
+        nome_produto = produto[2].strip()  # Índice 2 é o campo 'nome'
+        input_nome_produto.insert(0, nome_produto)
     else:
         input_nome_produto.insert(0, "Produto não encontrado")
+
     input_nome_produto.config(state='readonly')
 
-# Interface de movimentação
+# Registrar movimentação via interface
 def registrar_movimentacao_interface():
-    codigo_barras = input_codigo_barras.get()
+    codigo_barras = input_codigo_barras.get().strip()
     tipo = tipo_movimentacao.get()
     try:
         quantidade = int(input_quantidade.get())
@@ -84,7 +85,7 @@ def registrar_movimentacao_interface():
         messagebox.showerror("Erro", "Quantidade inválida!")
         return
 
-    usuario = input_usuario.get()
+    usuario = input_usuario.get().strip()
     produto = consultar_produto(codigo_barras)
     if produto:
         registrar_movimentacao(produto[0], tipo, quantidade, usuario)
@@ -98,40 +99,53 @@ def registrar_movimentacao_interface():
 # GUI
 root = tk.Tk()
 root.title("Controle de Estoque")
-root.geometry("700x500")
-root.resizable(False, False)
+root.geometry("800x600")
+root.configure(bg='#f0f0f0')
 
-frame_form = tk.LabelFrame(root, text="Movimentação de Estoque", padx=10, pady=10)
-frame_form.pack(padx=10, pady=10, fill="x")
+style = ttk.Style()
+style.theme_use("clam")
+style.configure("Treeview.Heading", font=('Arial', 10, 'bold'))
+style.configure("Treeview", rowheight=25, font=('Arial', 10))
 
-tk.Label(frame_form, text="Código de Barras:").grid(row=0, column=0, sticky="w")
-input_codigo_barras = tk.Entry(frame_form, width=30)
-input_codigo_barras.grid(row=0, column=1, pady=5, padx=5)
+# Formulário de movimentação
+frame_form = tk.LabelFrame(root, text="Movimentação de Estoque", padx=20, pady=20, bg='#f0f0f0')
+frame_form.pack(padx=20, pady=15, fill="x")
+
+# Código de Barras
+tk.Label(frame_form, text="Código de Barras:", bg='#f0f0f0').grid(row=0, column=0, sticky="w", pady=5)
+input_codigo_barras = tk.Entry(frame_form, width=40)
+input_codigo_barras.grid(row=0, column=1, padx=10, pady=5)
 input_codigo_barras.bind("<FocusOut>", buscar_produto_interface)
 
-tk.Label(frame_form, text="Nome do Produto:").grid(row=1, column=0, sticky="w")
-input_nome_produto = tk.Entry(frame_form, width=30, state="readonly")
-input_nome_produto.grid(row=1, column=1, pady=5, padx=5)
+# Nome do Produto
+tk.Label(frame_form, text="Nome do Produto:", bg='#f0f0f0').grid(row=1, column=0, sticky="w", pady=5)
+input_nome_produto = tk.Entry(frame_form, width=40, state="readonly")
+input_nome_produto.grid(row=1, column=1, padx=10, pady=5)
 
-tk.Label(frame_form, text="Quantidade:").grid(row=2, column=0, sticky="w")
-input_quantidade = tk.Entry(frame_form, width=30)
-input_quantidade.grid(row=2, column=1, pady=5, padx=5)
+# Quantidade
+tk.Label(frame_form, text="Quantidade:", bg='#f0f0f0').grid(row=2, column=0, sticky="w", pady=5)
+input_quantidade = tk.Entry(frame_form, width=40)
+input_quantidade.grid(row=2, column=1, padx=10, pady=5)
 
-tk.Label(frame_form, text="Usuário:").grid(row=3, column=0, sticky="w")
-input_usuario = tk.Entry(frame_form, width=30)
-input_usuario.grid(row=3, column=1, pady=5, padx=5)
+# Usuário
+tk.Label(frame_form, text="Usuário:", bg='#f0f0f0').grid(row=3, column=0, sticky="w", pady=5)
+input_usuario = tk.Entry(frame_form, width=40)
+input_usuario.grid(row=3, column=1, padx=10, pady=5)
 
+# Tipo de movimentação
+tk.Label(frame_form, text="Tipo de Movimentação:", bg='#f0f0f0').grid(row=4, column=0, sticky="w", pady=5)
 tipo_movimentacao = tk.StringVar(value="entrada")
-frame_tipo = tk.Frame(frame_form)
-frame_tipo.grid(row=4, column=1, pady=5, sticky="w")
-tk.Radiobutton(frame_tipo, text="Entrada", variable=tipo_movimentacao, value="entrada").pack(side="left")
-tk.Radiobutton(frame_tipo, text="Saída", variable=tipo_movimentacao, value="saida").pack(side="left")
+frame_tipo = tk.Frame(frame_form, bg='#f0f0f0')
+frame_tipo.grid(row=4, column=1, sticky="w", pady=5)
+tk.Radiobutton(frame_tipo, text="Entrada", variable=tipo_movimentacao, value="entrada", bg='#f0f0f0').pack(side="left", padx=5)
+tk.Radiobutton(frame_tipo, text="Saída", variable=tipo_movimentacao, value="saida", bg='#f0f0f0').pack(side="left", padx=5)
 
-tk.Button(frame_form, text="Registrar Movimentação", width=25, command=registrar_movimentacao_interface).grid(row=5, column=0, columnspan=2, pady=10)
+# Botão registrar
+tk.Button(frame_form, text="Registrar Movimentação", width=30, bg="#007acc", fg="white", command=registrar_movimentacao_interface).grid(row=5, column=0, columnspan=2, pady=15)
 
 # Tabela de produtos
-frame_tabela = tk.LabelFrame(root, text="Produtos em Estoque", padx=10, pady=10)
-frame_tabela.pack(padx=10, pady=10, fill="both", expand=True)
+frame_tabela = tk.LabelFrame(root, text="Produtos em Estoque", padx=20, pady=10, bg='#f0f0f0')
+frame_tabela.pack(padx=20, pady=10, fill="both", expand=True)
 
 tree = ttk.Treeview(frame_tabela, columns=("Código", "Nome", "Quantidade"), show='headings')
 tree.heading("Código", text="Código de Barras")
@@ -139,9 +153,10 @@ tree.heading("Nome", text="Nome do Produto")
 tree.heading("Quantidade", text="Quantidade")
 tree.pack(fill="both", expand=True)
 
-# Configurações de cor para as tags
-tree.tag_configure('alerta', background='#ffdddd')  # Vermelho claro para alerta
-tree.tag_configure('ok', background='#ddffdd')      # Verde claro para estoque normal
+# Cores
+tree.tag_configure('alerta', background='#ffdddd')  # vermelho claro
+tree.tag_configure('ok', background='#ddffdd')      # verde claro
 
+# Carrega produtos ao abrir
 listar_produtos()
 root.mainloop()
