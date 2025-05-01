@@ -33,7 +33,7 @@ def registrar_movimentacao(produto_id, tipo, quantidade, usuario):
     elif tipo == 'saida':
         cursor.execute("UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?", (quantidade, produto_id))
 
-    cursor.execute("""
+    cursor.execute(""" 
         INSERT INTO movimentacoes (produto_id, tipo, quantidade, usuario, data_movimentacao)
         VALUES (?, ?, ?, ?, ?)
     """, (produto_id, tipo, quantidade, usuario, datetime.now()))
@@ -60,20 +60,13 @@ def listar_produtos():
     cursor.close()
     conn.close()
 
-# Buscar produto na interface
-def buscar_produto_interface(event=None):
-    codigo_barras = input_codigo_barras.get().strip()
-    produto = consultar_produto(codigo_barras)
-    input_nome_produto.config(state='normal')
-    input_nome_produto.delete(0, tk.END)
-    
-    if produto:
-        nome_produto = produto[2].strip()  # Índice 2 é o campo 'nome'
-        input_nome_produto.insert(0, nome_produto)
+# Função para verificar a senha antes de registrar a movimentação
+def verificar_senha():
+    senha = input_senha.get().strip()  # Pegando a senha digitada
+    if senha == "*****":  # Senha de exemplo, você pode mudar para a sua
+        registrar_movimentacao_interface()
     else:
-        input_nome_produto.insert(0, "Produto não encontrado")
-
-    input_nome_produto.config(state='readonly')
+        messagebox.showerror("Erro", "Senha incorreta!")
 
 # Registrar movimentação via interface
 def registrar_movimentacao_interface():
@@ -95,6 +88,21 @@ def registrar_movimentacao_interface():
         input_quantidade.delete(0, tk.END)
     else:
         messagebox.showerror("Erro", "Produto não encontrado!")
+
+# Buscar produto na interface
+def buscar_produto_interface(event=None):
+    codigo_barras = input_codigo_barras.get().strip()
+    produto = consultar_produto(codigo_barras)
+    input_nome_produto.config(state='normal')
+    input_nome_produto.delete(0, tk.END)
+    
+    if produto:
+        nome_produto = produto[2].strip()  # Índice 2 é o campo 'nome'
+        input_nome_produto.insert(0, nome_produto)
+    else:
+        input_nome_produto.insert(0, "Produto não encontrado")
+
+    input_nome_produto.config(state='readonly')
 
 # GUI
 root = tk.Tk()
@@ -132,16 +140,21 @@ tk.Label(frame_form, text="Usuário:", bg='#f0f0f0').grid(row=3, column=0, stick
 input_usuario = tk.Entry(frame_form, width=40)
 input_usuario.grid(row=3, column=1, padx=10, pady=5)
 
+# Senha
+tk.Label(frame_form, text="Senha:", bg='#f0f0f0').grid(row=4, column=0, sticky="w", pady=5)
+input_senha = tk.Entry(frame_form, width=40, show="*")
+input_senha.grid(row=4, column=1, padx=10, pady=5)
+
 # Tipo de movimentação
-tk.Label(frame_form, text="Tipo de Movimentação:", bg='#f0f0f0').grid(row=4, column=0, sticky="w", pady=5)
+tk.Label(frame_form, text="Tipo de Movimentação:", bg='#f0f0f0').grid(row=5, column=0, sticky="w", pady=5)
 tipo_movimentacao = tk.StringVar(value="entrada")
 frame_tipo = tk.Frame(frame_form, bg='#f0f0f0')
-frame_tipo.grid(row=4, column=1, sticky="w", pady=5)
+frame_tipo.grid(row=5, column=1, sticky="w", pady=5)
 tk.Radiobutton(frame_tipo, text="Entrada", variable=tipo_movimentacao, value="entrada", bg='#f0f0f0').pack(side="left", padx=5)
 tk.Radiobutton(frame_tipo, text="Saída", variable=tipo_movimentacao, value="saida", bg='#f0f0f0').pack(side="left", padx=5)
 
 # Botão registrar
-tk.Button(frame_form, text="Registrar Movimentação", width=30, bg="#007acc", fg="white", command=registrar_movimentacao_interface).grid(row=5, column=0, columnspan=2, pady=15)
+tk.Button(frame_form, text="Registrar Movimentação", width=30, bg="#007acc", fg="white", command=verificar_senha).grid(row=6, column=0, columnspan=2, pady=15)
 
 # Tabela de produtos
 frame_tabela = tk.LabelFrame(root, text="Produtos em Estoque", padx=20, pady=10, bg='#f0f0f0')
@@ -159,4 +172,5 @@ tree.tag_configure('ok', background='#ddffdd')      # verde claro
 
 # Carrega produtos ao abrir
 listar_produtos()
+
 root.mainloop()
