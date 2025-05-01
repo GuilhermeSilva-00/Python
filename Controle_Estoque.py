@@ -2,12 +2,8 @@ import pyodbc
 import tkinter as tk
 from tkinter import messagebox, ttk
 from datetime import datetime
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
-''' Teste'''
-
+# Conexão com o banco de dados
 def conectar_banco():
     conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};'
@@ -17,6 +13,7 @@ def conectar_banco():
     )
     return conn
 
+# Consulta produto pelo código de barras
 def consultar_produto(codigo_barras):
     conn = conectar_banco()
     cursor = conn.cursor()
@@ -26,6 +23,7 @@ def consultar_produto(codigo_barras):
     conn.close()
     return produto
 
+# Registrar entrada ou saída de produto
 def registrar_movimentacao(produto_id, tipo, quantidade, usuario):
     conn = conectar_banco()
     cursor = conn.cursor()
@@ -40,38 +38,11 @@ def registrar_movimentacao(produto_id, tipo, quantidade, usuario):
         VALUES (?, ?, ?, ?, ?)
     """, (produto_id, tipo, quantidade, usuario, datetime.now()))
 
-    # Verificar se a quantidade do produto chegou a 5
-    cursor.execute("SELECT quantidade FROM produtos WHERE id = ?", (produto_id,))
-    quantidade_atual = cursor.fetchone()[0]
-    if quantidade_atual == 5:
-        enviar_email("destinatario@dominio.com", "Alerta de Estoque Baixo", f"A quantidade do produto com ID {produto_id} chegou a 5 unidades.")
-
     conn.commit()
     cursor.close()
     conn.close()
 
-def enviar_email(destinatario, assunto, corpo):
-    remetente = "contato.gvas@gmail.com"
-    senha = "Gvas@0728"  # Caso tenha 2FA, utilize a senha do aplicativo
-
-    # Configurar o servidor SMTP do Gmail
-    servidor = smtplib.SMTP("smtp.gmail.com", 587)
-    servidor.starttls()  # Usar TLS
-    servidor.login(remetente, senha)  # Logar no Gmail
-
-    # Criar o conteúdo do e-mail
-    mensagem = MIMEMultipart()
-    mensagem["From"] = remetente
-    mensagem["To"] = destinatario
-    mensagem["Subject"] = assunto
-    mensagem.attach(MIMEText(corpo, "plain"))
-
-    # Enviar o e-mail
-    servidor.sendmail(remetente, destinatario, mensagem.as_string())
-    servidor.quit()
-
-    print("E-mail enviado com sucesso!")
-
+# Atualiza a tabela de produtos no GUI
 def listar_produtos():
     for row in tree.get_children():
         tree.delete(row)
@@ -80,10 +51,18 @@ def listar_produtos():
     cursor.execute("SELECT codigo_barras, nome, quantidade FROM produtos")
     for produto in cursor.fetchall():
         codigo, nome, quantidade = produto
-        tree.insert("", tk.END, values=(codigo.strip(), nome.strip(), quantidade))
+        codigo = codigo.strip()
+        nome = nome.strip()
+
+        if quantidade <= 10:
+            quantidade_str = f"⚠️ {quantidade}"
+            tree.insert("", tk.END, values=(codigo, nome, quantidade_str), tags=('alerta',))
+        else:
+            tree.insert("", tk.END, values=(codigo, nome, quantidade), tags=('ok',))
     cursor.close()
     conn.close()
 
+# Buscar produto na interface
 def buscar_produto_interface(event=None):
     codigo_barras = input_codigo_barras.get()
     produto = consultar_produto(codigo_barras)
@@ -95,6 +74,7 @@ def buscar_produto_interface(event=None):
         input_nome_produto.insert(0, "Produto não encontrado")
     input_nome_produto.config(state='readonly')
 
+# Interface de movimentação
 def registrar_movimentacao_interface():
     codigo_barras = input_codigo_barras.get()
     tipo = tipo_movimentacao.get()
@@ -149,7 +129,7 @@ tk.Radiobutton(frame_tipo, text="Saída", variable=tipo_movimentacao, value="sai
 
 tk.Button(frame_form, text="Registrar Movimentação", width=25, command=registrar_movimentacao_interface).grid(row=5, column=0, columnspan=2, pady=10)
 
-# Tabela
+# Tabela de produtos
 frame_tabela = tk.LabelFrame(root, text="Produtos em Estoque", padx=10, pady=10)
 frame_tabela.pack(padx=10, pady=10, fill="both", expand=True)
 
@@ -159,6 +139,9 @@ tree.heading("Nome", text="Nome do Produto")
 tree.heading("Quantidade", text="Quantidade")
 tree.pack(fill="both", expand=True)
 
-listar_produtos()
+# Configurações de cor para as tags
+tree.tag_configure('alerta', background='#ffdddd')  # Vermelho claro para alerta
+tree.tag_configure('ok', background='#ddffdd')      # Verde claro para estoque normal
 
+listar_produtos()
 root.mainloop()
