@@ -6,6 +6,8 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+''' Teste'''
+
 def conectar_banco():
     conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};'
