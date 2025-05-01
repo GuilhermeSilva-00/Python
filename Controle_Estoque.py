@@ -63,7 +63,7 @@ def listar_produtos():
 # Função para verificar a senha antes de registrar a movimentação
 def verificar_senha():
     senha = input_senha.get().strip()  # Pegando a senha digitada
-    if senha == "*****":  # Senha de exemplo, você pode mudar para a sua
+    if senha == "010101":  # Senha de exemplo, você pode mudar para a sua
         registrar_movimentacao_interface()
     else:
         messagebox.showerror("Erro", "Senha incorreta!")
@@ -123,7 +123,8 @@ frame_form.pack(padx=20, pady=15, fill="x")
 tk.Label(frame_form, text="Código de Barras:", bg='#f0f0f0').grid(row=0, column=0, sticky="w", pady=5)
 input_codigo_barras = tk.Entry(frame_form, width=40)
 input_codigo_barras.grid(row=0, column=1, padx=10, pady=5)
-input_codigo_barras.bind("<FocusOut>", buscar_produto_interface)
+input_codigo_barras.bind("<KeyRelease>", buscar_produto_interface)
+
 
 # Nome do Produto
 tk.Label(frame_form, text="Nome do Produto:", bg='#f0f0f0').grid(row=1, column=0, sticky="w", pady=5)
