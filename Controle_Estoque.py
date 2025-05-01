@@ -7,8 +7,8 @@ from datetime import datetime
 def conectar_banco():
     conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};'
-        'SERVER=DELLMG;'
-        'DATABASE=SQL_BD;'
+        'SERVER=DELL;'
+        'DATABASE=SQL_;'
         'Trusted_Connection=yes;'
     )
     return conn
